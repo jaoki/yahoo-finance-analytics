@@ -16,6 +16,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.annotations.Test;
 
@@ -35,19 +36,12 @@ public class WordCountFromElementsStringTest {
 
 	@Test
 	public void test1() throws Exception {
-		String contentPayload = retrieveData();
-//		System.out.println(contentPayload);
-		
-		ObjectMapper mapper = new ObjectMapper();
-		JsonNode root = mapper.readTree(contentPayload);
-//		JsonNode count = root.path("query").path("count");
-//		System.out.println(mapper.writeValueAsString(count));
-//		System.out.println(root.getTextValue());
-		JsonNode quotes = root.path("query").path("results").path("quote");
+		JsonNode quotes = retrieveQuoteByDate();
 
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		DataSet<JsonNode> a = env.fromElements(quotes);
-		FlatMapOperator<JsonNode, JsonNode> result = a.flatMap(new QuoteSplitter());
+		FlatMapOperator<JsonNode, JsonNode> result = a.flatMap(new QuoteSplitter()).returns(JsonNode.class);
+//		FlatMapOperator<JsonNode, JsonNode> result = b.map(mapper);
 //		for(int i = 0; i < quotes.size(); i++){
 //			JsonNode quote = quotes.get(i);
 //			System.out.println(quote.get("Date").getTextValue());
@@ -82,7 +76,7 @@ public class WordCountFromElementsStringTest {
 
 	}
 
-	private String retrieveData() throws IOException, ClientProtocolException {
+	private JsonNode retrieveQuoteByDate() throws IOException, ClientProtocolException, JsonProcessingException {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 		final String URL = "https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.historicaldata%20where%20symbol%20%3D%20%22YHOO%22%20and%20startDate%20%3D%20%222009-09-11%22%20and%20endDate%20%3D%20%222010-03-10%22&format=json&diagnostics=true&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback=";
 		HttpGet httpGet = new HttpGet(URL);
@@ -90,7 +84,13 @@ public class WordCountFromElementsStringTest {
 		HttpEntity entity1 = response1.getEntity();
 		String contentPayload = EntityUtils.toString(response1.getEntity()) ;
 		EntityUtils.consume(entity1);
-		return contentPayload;
+//		return contentPayload;
+//		String contentPayload = retrieveQuoteByDate();
+		
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode root = mapper.readTree(contentPayload);
+		JsonNode quotes = root.path("query").path("results").path("quote");
+		return quotes;
 	}
 
 	//
